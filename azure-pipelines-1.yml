@@ -1,8 +1,8 @@
 trigger:
--'*'
+- '*'
 
 variables:
-  buildConfiguration:'Release'
+  buildConfiguration: 'Release'
 
 stages:
 - stage: 'Build'
