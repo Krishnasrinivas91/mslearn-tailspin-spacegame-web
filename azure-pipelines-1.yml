@@ -1,0 +1,56 @@
+trigger:
+-'*'
+
+variables:
+  buildConfiguration:'Release'
+
+stages:
+- stage: 'Build'
+  displayName: 'Build web app'
+  jobs:
+  - job: 'Build'
+    displayName: 'Build Job'
+    pool:
+      vmImage: ubuntu-latest
+      demands:
+      - npm
+    
+    variables:
+      wwwrootDir: 'Tailspin.SpaceGame.Web/wwwroot'
+      dotnetSdkVersion: '5.x'
+    steps:
+      - task: UseDotNet@2
+        displayName: 'Use Dot net SDK $(dotnetSdkVersion)'
+        inputs:
+          version: $(dotnetSdkVersion)
+      - task: Npm@1
+        displayName: 'Run npm install'
+        inputs:
+          verbose: false
+      - script: './node_modules/.bin/node-sass $(wwwrootDir) --output $(wwwrootDir)'
+        displayName: 'Compile saas to css'
+      - task: gulp@1
+        displayName: 'Run gulp tasks'
+      - task: DotNetCoreCLI@2
+        displayName: 'Restore Dependency for projects'
+        inputs:
+          command: restore
+          projects: '**/*.csproj'
+          
+      - task: DotNetCoreCLI@2
+        displayName: 'Build the project - $(buildConfiguration)'
+        inputs:
+          command: build
+          projects: '**/*.csproj'
+          arguments: '--no-restore --configuration $(buildConfiguration)'
+      - task: DotNetCoreCLI@2
+        displayName: 'Publish the project - $(buildConfiguration)'
+        inputs: 
+          command: publish
+          projects: '**/*.csproj'
+          arguments: '--no-build --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(buildConfiguration)'
+          publishWebProjects: false
+          zipAfterPublish: true
+      - task: PublishBuildArtifacts@1
+        displayName: 'publish artifact: drop'
+        condition: succeeded()
